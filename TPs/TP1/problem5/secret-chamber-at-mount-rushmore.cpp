@@ -2,11 +2,13 @@
 #include <unordered_map>
 #include <unordered_set>
 #include <memory>
+#include <ios>
 
 # define YES "yes"
 # define NO "no"
 
 using namespace std;
+
 
 class TranslationTree {
     private:
@@ -17,15 +19,13 @@ class TranslationTree {
             ttree[srcLetter].insert(destLetter);
         }
 
-        bool letterExistsInTree(char letter) {
+        bool letterExistsInTree(char letter) const{
             return ttree.find(letter) != ttree.end();
         }
 
         // Implementation of DFS
         bool isTranslation(const char& srcLetter, const char& destLetter, int counter = 0) {
-            if (
-                (srcLetter == destLetter)
-                || (ttree[srcLetter].find(destLetter) != ttree[srcLetter].end())) { // Quick search to find the destLetter in the children
+            if ((srcLetter == destLetter) || (ttree[srcLetter].find(destLetter) != ttree[srcLetter].end())) { // Quick search to find the destLetter in the children
                 return true;
             }
             else if (
@@ -36,15 +36,13 @@ class TranslationTree {
             else             
             {
                 bool foundTranslation = false;
-                for (char nextLetter : ttree[srcLetter]) {
-                    foundTranslation = isTranslation(nextLetter, destLetter, counter + 1);
-                    if (foundTranslation) {
-                        foundTranslation = true;
-                        break;
-                    }
+                for (const char nextLetter : ttree[srcLetter]) {
+                    if(isTranslation(nextLetter, destLetter, counter + 1))
+                        return true;
+                    
                 }
 
-                return foundTranslation;
+                return false;
             }
         }
         
@@ -84,14 +82,14 @@ void matchWordPairs(
         
         // Writes to standard output
         cout << (isTranslation ? YES : NO) << endl;
-
-    }
-    
+    } 
 }
 
 
 
 int main() {
+    // Disable synchronization between C and C++
+    ios_base::sync_with_stdio(false);
     // VARIABLES READ FROM INPUT
     int numTranslations = 0;
     int numWordPairs = 0;
