@@ -3,28 +3,44 @@
 #include <unordered_set>
 #include <memory>
 #include <ios>
+#include <queue>
 
 # define YES "yes"
 # define NO "no"
 
 using namespace std;
 
-
 class TranslationTree {
     private:
         unordered_map<char, unordered_set<char>> ttree;
-    public:
-        TranslationTree() : ttree({}) {}
-        void addTranslation(char srcLetter, char destLetter) {
-            ttree[srcLetter].insert(destLetter);
+
+        bool isLetterVisited(const char& letter, unordered_set<char>& visitedLetters){
+            return visitedLetters.find(letter) != visitedLetters.end();
+        }
+
+        void addChildrenToQueue(
+            queue<char>& q, 
+            unordered_set<char>& visitedLetters, 
+            char parentLetter) {
+            
+            for (const char child : ttree[parentLetter])
+                if (!isLetterVisited(child, visitedLetters))
+                    q.push(child);
         }
 
         bool letterExistsInTree(char letter) const{
             return ttree.find(letter) != ttree.end();
         }
 
+    public:
+        TranslationTree() : ttree({}) {}
+
+        void addTranslation(char srcLetter, char destLetter) {
+            ttree[srcLetter].insert(destLetter);
+        }
+
         // Implementation of DFS
-        bool isTranslation(const char& srcLetter, const char& destLetter, int counter = 0) {
+        bool isTranslationDFS(const char& srcLetter, const char& destLetter, int counter = 0) {
             if ((srcLetter == destLetter) || (ttree[srcLetter].find(destLetter) != ttree[srcLetter].end())) { // Quick search to find the destLetter in the children
                 return true;
             }
@@ -35,11 +51,44 @@ class TranslationTree {
             }
             else             
             {
-                bool foundTranslation = false;
                 for (const char nextLetter : ttree[srcLetter]) {
-                    if(isTranslation(nextLetter, destLetter, counter + 1))
+                    if(isTranslationDFS(nextLetter, destLetter, counter + 1))
                         return true;
                     
+                }
+
+                return false;
+            }
+        }
+        
+
+        // Implementation of BFS
+        bool isTranslationBFS(const char& srcLetter, const char& destLetter) {
+            if (srcLetter == destLetter) {
+                return true;
+            }
+            else if (!letterExistsInTree(srcLetter)) {
+                return false;
+            }
+            else if ((ttree[srcLetter].find(destLetter) != ttree[srcLetter].end())) { // Quick search to find the destLetter in the children
+                return true;
+            }
+            else             
+            {
+                queue<char> toVisit;
+                unordered_set<char> visitedLetters;
+                // Initializes queue
+                toVisit.push(srcLetter);
+
+                while (toVisit.size() > 0) {
+                    char currentLetter = toVisit.front();
+                    toVisit.pop();
+                    visitedLetters.insert(currentLetter);
+
+                    if (currentLetter == destLetter)
+                        return true;
+                    else
+                        addChildrenToQueue(toVisit, visitedLetters, currentLetter);
                 }
 
                 return false;
@@ -69,8 +118,8 @@ void matchWordPairs(
         cin >> baseWord >> translatedWord;
 
         if (baseWord.length() == translatedWord.length()) {
-            for (int j = 0; j < baseWord.length(); j++) {
-                if (!translationTree->isTranslation(baseWord[j], translatedWord[j])) {
+            for (unsigned int j = 0; j < baseWord.length(); j++) {
+                if (!translationTree->isTranslationBFS(baseWord[j], translatedWord[j])) {
                     isTranslation = false;
                     break;
                 }
@@ -104,3 +153,4 @@ int main() {
 
     return 0;     
 }
+
