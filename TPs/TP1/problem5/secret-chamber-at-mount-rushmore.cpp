@@ -98,24 +98,26 @@ class TranslationTree {
 };
 
 void createTranslations(
-    const int& numTranslations, 
+    vector<pair<char, char>> translations,
     unique_ptr<TranslationTree>& translationTree){
 
-    for(int i = 0; i < numTranslations; i++){
-        char srcLetter, destLetter;
-        cin >> srcLetter >> destLetter;
-        translationTree->addTranslation(srcLetter, destLetter);
+    for(int i = 0; i < translations.size(); i++){
+        translationTree->addTranslation(
+            translations[i].first, translations[i].second);
     }
 }
 
 void matchWordPairs(
-    const int& numWordPairs,
-    unique_ptr<TranslationTree>& translationTree){
+    vector<pair<string, string>>& wordPairs,
+    unique_ptr<TranslationTree>& translationTree,
+    vector<string>& wordPairMatches) {
     
-    for (int i = 0; i < numWordPairs; i++){
-        string baseWord, translatedWord;
+    for (int i = 0; i < wordPairs.size(); i++){
+        string 
+            baseWord = wordPairs[i].first, 
+            translatedWord = wordPairs[i].second;
+        
         bool isTranslation = true;
-        cin >> baseWord >> translatedWord;
 
         if (baseWord.length() == translatedWord.length()) {
             for (unsigned int j = 0; j < baseWord.length(); j++) {
@@ -129,27 +131,56 @@ void matchWordPairs(
             isTranslation = false;
         }
         
-        // Writes to standard output
-        cout << (isTranslation ? YES : NO) << endl;
+        wordPairMatches.push_back(isTranslation ? YES : NO);  
     } 
 }
 
+void readInput(
+    vector<pair<char, char>>& translations,
+    vector<pair<string, string>>& wordPairs) {
+    int numTranslations, numWordPairs;
+    // Reads the total number of translations and word pairs
+    cin >> numTranslations >> numWordPairs;
+    // Reading translations
+    for(int i = 0; i < numTranslations; i++){
+        char srcLetter, destLetter;
+        cin >> srcLetter >> destLetter;
+        translations.push_back({srcLetter, destLetter});
+    }
+    // Reading word pairs
+    for(int i = 0; i < numWordPairs; i++){
+        string baseWord, translatedWord;
+        cin >> baseWord >> translatedWord;
+        wordPairs.push_back({baseWord, translatedWord});
+    }
 
+}
+
+void printOutput(const vector<string>& wordPairMatches) {
+    for (const string& wordPairMatch : wordPairMatches) {
+        cout << wordPairMatch << endl;
+    }
+}
 
 int main() {
     // Disable synchronization between C and C++
     ios_base::sync_with_stdio(false);
-    // VARIABLES READ FROM INPUT
-    int numTranslations = 0;
-    int numWordPairs = 0;
+    // Stores Input
+    vector<pair<char, char>> translations;
+    vector<pair<string, string>> wordPairs;
+    // Stores the output
+    vector<string> wordPairMatches;
+
+    // Translation tree to hold the translations
     unique_ptr<TranslationTree> translationTree(new TranslationTree());
     
-    // Reads the total number of translations and word pairs
-    cin >> numTranslations >> numWordPairs;
+    readInput(translations, wordPairs);
 
-    createTranslations(numTranslations, translationTree);
+    createTranslations(translations, translationTree);
 
-    matchWordPairs(numWordPairs, translationTree);
+    matchWordPairs(wordPairs, translationTree, wordPairMatches);
+
+    printOutput(wordPairMatches);
 
     return 0;     
 }
