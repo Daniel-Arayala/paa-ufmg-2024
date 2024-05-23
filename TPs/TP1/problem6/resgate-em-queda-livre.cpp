@@ -4,26 +4,25 @@
 #include <cmath>
 #include <algorithm>
 #include <memory>
-#include <unordered_set>
 #include <iomanip>
 
 using namespace std;
 
 typedef struct {
     int id;
-    float x;
-    float y;    
+    double x;
+    double y;    
 } Person;
 
 
 class WebConnection {
     public:
-        Person person1;
-        Person person2;
-        float distance;
-        WebConnection(const Person& person1, const Person& person2, const float distance) {
-            this->person1 = person1;
-            this->person2 = person2;
+        int person1ID;
+        int person2ID;
+        double distance;
+        WebConnection(const int& person1ID, const int& person2ID, const double& distance) {
+            this->person1ID = person1ID;
+            this->person2ID = person2ID;
             this->distance = distance;
         }
 
@@ -35,13 +34,13 @@ class WebConnection {
 
 class DisjointSet {
     private:
-        unordered_map<int, int> disjointSetParents;
-        unordered_map<int, int> rank;
+        vector<int> disjointSetParents;
+        vector<int> rank;
         bool allElementsInSameSet = false;
 
         void makeSet(const Person& person) {
-            disjointSetParents[person.id] = person.id;
-            rank[person.id] = 1; // Number of nodes in the set
+            disjointSetParents.emplace_back(person.id);
+            rank.emplace_back(1); // Number of nodes in the set
         }
 
         int findSetRecursive(const int& personID) {
@@ -55,25 +54,23 @@ class DisjointSet {
 
     public:
         DisjointSet(const vector<Person>& people){
-            for(const Person person: people) {
+            rank.reserve(people.size());
+            disjointSetParents.reserve(people.size());
+            for(const Person& person: people) {
                 makeSet(person);
             }
         }
 
-        bool areAllElementsInSameSet(void) {
+        bool areAllElementsInSameSet(void) const {
             return allElementsInSameSet;
         }
 
-        int findSet(const Person& person) {
-            return findSetRecursive(person.id);
-        }
-
         bool unionSet(const WebConnection& webConnection) {
-            if (webConnection.person1.id == webConnection.person2.id) 
+            if (webConnection.person1ID == webConnection.person2ID) 
                 return false;
 
-            int representativePerson1 = findSetRecursive(webConnection.person1.id);
-            int representativePerson2 = findSetRecursive(webConnection.person2.id);
+            int representativePerson1 = findSetRecursive(webConnection.person1ID);
+            int representativePerson2 = findSetRecursive(webConnection.person2ID);
 
             if (representativePerson1 == representativePerson2){
                 return false;
@@ -103,25 +100,25 @@ class TestCase {
         vector<WebConnection> webConnections;
 
         // FUNCTIONS --------------------------------------------------
-        float calculateDistance(const Person& person1, const Person& person2) {
+        double calculateDistance(const Person& person1, const Person& person2) {
             return sqrt(pow(person1.x - person2.x, 2) + pow(person1.y - person2.y, 2));
         }
     public:
 
         void addPerson(Person& newPerson){
-            for(const Person person: people) {
-                float webDistance = calculateDistance(person, newPerson);
-                WebConnection webConnection(person, newPerson, webDistance);
-                webConnections.push_back(webConnection);
+            for(const Person& person: people) {
+                double webDistance = calculateDistance(person, newPerson);
+                WebConnection webConnection(person.id, newPerson.id, webDistance);
+                webConnections.emplace_back(webConnection);
             }            
             people.push_back(newPerson);
         }
 
         // Kruskal implementation
-        float minimizeWebTotalDistance(void) {
+        double minimizeWebTotalDistance(void) {
             sort(webConnections.begin(), webConnections.end());
 
-            float webTotalDistance = 0;
+            double webTotalDistance = 0;
             DisjointSet disjointSet(people);
             for(const WebConnection webConnection: webConnections) {
                 if(disjointSet.areAllElementsInSameSet())
@@ -138,6 +135,7 @@ class TestCase {
 void readInput(vector<TestCase>& testCases) {
     int numTestCases;
     cin >> numTestCases;
+    testCases.reserve(numTestCases);
 
     for (int i = 0; i < numTestCases; i++){
         int numPeople;
@@ -150,7 +148,7 @@ void readInput(vector<TestCase>& testCases) {
             testCase.addPerson(personCoord);
         }
 
-        testCases.push_back(testCase);
+        testCases.emplace_back(testCase);
     }
 }
 
@@ -162,8 +160,8 @@ int main() {
 
     readInput(testCases);
 
-    for(TestCase testCase: testCases) {
-        float minWebTotalDistanceMeters = testCase.minimizeWebTotalDistance() / 100;
+    for(TestCase& testCase: testCases) {
+        double minWebTotalDistanceMeters = testCase.minimizeWebTotalDistance() / 100;
         cout  << fixed << setprecision(2) << minWebTotalDistanceMeters << endl;
         
     }
