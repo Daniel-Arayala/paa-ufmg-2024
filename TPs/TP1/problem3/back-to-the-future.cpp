@@ -33,6 +33,7 @@ struct City{
     bool visited = false;
     int previousCityID = -1;
 
+
     City(const int& id){
         this->id = id;
     }
@@ -84,18 +85,18 @@ class TripAdvisor {
         }
 
         void confirmRouteBothWays(int& originCityID, int& destCityID) {
-            cout << "Origin " << originCityID << " -> Dest " << destCityID << endl;
+            //cout << "Origin " << originCityID << " -> Dest " << destCityID << endl;
             for (int i = 0; i < tripGraph[originCityID].size(); i++) {
-                cout << "Analyzing edge: " << tripGraph[originCityID][i].originCityID << " -> " << tripGraph[originCityID][i].destCityID << endl;
+                //cout << "Analyzing edge: " << tripGraph[originCityID][i].originCityID << " -> " << tripGraph[originCityID][i].destCityID << endl;
                 if (tripGraph[originCityID][i].destCityID == destCityID) {
                     tripGraph[originCityID][i].confirmed = true;
                     break;
                 }
             }
-            cout << "The other way around" << endl;
-            cout << "Origin " << destCityID << " -> Dest " << originCityID << endl;
+            //cout << "The other way around" << endl;
+            //cout << "Origin " << destCityID << " -> Dest " << originCityID << endl;
             for (int i = 0; i < tripGraph[destCityID].size(); i++) {
-                cout << "Analyzing edge: " << tripGraph[destCityID][i].originCityID << " -> " << tripGraph[destCityID][i].destCityID << endl;
+                //cout << "Analyzing edge: " << tripGraph[destCityID][i].originCityID << " -> " << tripGraph[destCityID][i].destCityID << endl;
                 if (tripGraph[destCityID][i].destCityID == originCityID) {
                     tripGraph[destCityID][i].confirmed = true;
                     break;
@@ -138,7 +139,7 @@ class TripAdvisor {
             pq.push(cities[startCityID]);
 
             while (!pq.empty() && (pq.top().id != this->finalDestinyCityID)) {
-                City currentCity = pq.top();
+                City& currentCity = cities[pq.top().id];
                 pq.pop();
 
                 if (!checkIfCityIsValid(currentCity)) {
@@ -147,7 +148,7 @@ class TripAdvisor {
                 currentCity.visited = true;
                 for (FlightRoute& flightRoute : tripGraph[currentCity.id]) {
                     // Used in case the flight was already used by the friends
-                    if (flightRoute.confirmed) {
+                    if (flightRoute.confirmed || cities[flightRoute.destCityID].visited) {
                         continue;
                     }
                     float updatedTotalPriceFromCurrentCity = currentCity.knownTotalPriceFromOrigin + flightRoute.ticketPrice;
@@ -171,17 +172,17 @@ class TripAdvisor {
                 }
                 else {
                     // Confirming paths
-                    int numSeatsReserved = min(this->numSeatsPerFlight, this->numFriends - this->totalFriendsThatTraveled);
 
                     for (int i = 1;  i < dijkstraMinPath.size(); i++) {
                         int previousCityID = dijkstraMinPath[i - 1];
                         int currentCityID = dijkstraMinPath[i];
-                        float individualTicketPrice = getRouteFromTripsGraph(previousCityID, currentCityID).ticketPrice;
-                        this->totalPricePaidByFriends += (individualTicketPrice * numSeatsReserved);
                         confirmRouteBothWays(previousCityID, currentCityID);
                     }
                     
+                    int numSeatsReserved = min(this->numSeatsPerFlight, this->numFriends - this->totalFriendsThatTraveled);
                     this->totalFriendsThatTraveled += numSeatsReserved;
+                    float individualTicketPrice = cities[finalDestinyCityID].knownTotalPriceFromOrigin;
+                    this->totalPricePaidByFriends += (individualTicketPrice * numSeatsReserved);
                 }
                 if (totalFriendsThatTraveled < numFriends)
                     resetCities();
@@ -213,53 +214,33 @@ void readInputGetLines(vector<TripAdvisor>& trips) {
 }
 
 void readInput(vector<TripAdvisor>& trips) {
-    int numCities;
-    while (cin >> numCities)  {
-        int numFlightRoutes, numFriends, numSeats;
+    int numCities, numFlightRoutes, numFriends, numSeats;
+
+    while (cin >> numCities >> numFlightRoutes) {
         vector<FlightRoute> flightRoutes;
 
-        cin >> numCities >> numFlightRoutes;
         for (int i = 0; i < numFlightRoutes; i++) {
             int originCityID, destCityID;
             float ticketPrice;
-            
-            cin >> originCityID >> destCityID >> ticketPrice;
-            FlightRoute flightRoute(originCityID, destCityID, ticketPrice);
-            flightRoutes.emplace_back(flightRoute);
+            if (!(cin >> originCityID >> destCityID >> ticketPrice)) {
+                cerr << "Error reading flight route data." << endl;
+                return;
+            }
+            flightRoutes.emplace_back(originCityID, destCityID, ticketPrice);
         }
-        cin >> numFriends >> numSeats;
+
+        if (!(cin >> numFriends >> numSeats)) {
+            cerr << "Error reading friends and seats data." << endl;
+            return;
+        }
+
         TripAdvisor trip(numFriends, numSeats, numCities, flightRoutes);
-        trips.emplace_back(trip);
+        trips.emplace_back(std::move(trip));
     }
 }
 
 void readInputFile(vector<TripAdvisor>& trips) {
-    ifstream tripsFile("input.txt");
-    if (tripsFile.is_open()) {
-        while (tripsFile){
-            int numCities, numFlightRoutes, numFriends, numSeats;
-            vector<FlightRoute> flightRoutes;
-            tripsFile >> numCities >> numFlightRoutes;
-
-            for (int i = 0; i < numFlightRoutes; i++) {
-                int originCityID, destCityID;
-                float ticketPrice;
-                
-                tripsFile >> originCityID >> destCityID >> ticketPrice;
-                FlightRoute flightRoute(originCityID, destCityID, ticketPrice);
-                flightRoutes.emplace_back(flightRoute);
-            }
-            tripsFile >> numFriends >> numSeats;
-            TripAdvisor trip(numFriends, numSeats, numCities, flightRoutes);
-            trips.emplace_back(trip);
-        }
-    }
-    tripsFile.close();
-}
-
-
-void readInputFileGPT(vector<TripAdvisor>& trips) {
-    ifstream tripsFile("input.txt");
+    ifstream tripsFile("inputs/input1.txt");
     if (tripsFile.is_open()) {
         while (true) {
             int numCities, numFlightRoutes;
@@ -300,13 +281,13 @@ int main() {
     // Variables extracted from input data
     vector<TripAdvisor> trips;
 
-    readInputFileGPT(trips);
+    readInputFile(trips);
 
     for (int i = 0; i < trips.size(); i++) {
         bool validTrip = trips[i].findCheapestFlightsRouteForAllFriends();
         cout << "Instancia " << i + 1 << endl;
         if (validTrip) {
-            cout << trips[i].getTotalPricePaidByFriends() << endl;
+            cout << fixed << setprecision(0) << trips[i].getTotalPricePaidByFriends() << endl;
         }
         else {
             cout << "impossivel" << endl;
