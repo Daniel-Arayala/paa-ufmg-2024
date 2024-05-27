@@ -8,8 +8,6 @@
 
 using namespace std;
 
-#define INF numeric_limits<float>::infinity()
-
 struct Road {
     int destStrategicPoint;
 
@@ -130,12 +128,14 @@ class AsssassinSoldier {
             this->killProbability = killProbability;
 
             // Road initialization
-            this->roads.reserve(this->numRoads + 1);
-            this->roads.resize(this->numRoads + 1);
+            this->roads.reserve(this->numStrategicPoints + 1);
+            this->roads.resize(this->numStrategicPoints + 1);
 
             for(pair<int, int>& roadPair : roadPairs) {
                 Road road(roadPair.second);
+                Road roadInverse(roadPair.first);
                 this->roads[roadPair.first].emplace_back(road);
+                this->roads[roadPair.second].emplace_back(roadInverse);
             }
 
             // Strategic Point initialization
@@ -161,15 +161,10 @@ void readInput(vector<AsssassinSoldier>& assassinSoldiers) {
     float killProbability;
 
     while (cin >> numStrategicPoints >> numRoads >> numBullets >> killProbability) {
-
         vector<pair<int, int>> roadPairs;
-
         for (int i = 0; i < numRoads; i++) {
             int srcStrategicPoint, destStrategicPoint;
-            if (!(cin >> srcStrategicPoint >> destStrategicPoint)) {
-                cerr << "Error reading road data." << endl;
-                return;
-            }
+            cin >> srcStrategicPoint >> destStrategicPoint;
             roadPairs.emplace_back(make_pair(srcStrategicPoint, destStrategicPoint));
         }
 
@@ -185,7 +180,7 @@ void readInput(vector<AsssassinSoldier>& assassinSoldiers) {
         int soldierStartPoint, soldierEndPoint;
         cin >> soldierStartPoint >> soldierEndPoint;
 
-        AsssassinSoldier assassinSoldier(
+        assassinSoldiers.emplace_back(
             numStrategicPoints, 
             numRoads, 
             numBullets, 
@@ -193,14 +188,13 @@ void readInput(vector<AsssassinSoldier>& assassinSoldiers) {
             soldierEndPoint, 
             killProbability,
             roadPairs, 
-            numShootersPerStrategicPoint); 
-
-        assassinSoldiers.emplace_back(assassinSoldier);
+            numShootersPerStrategicPoint
+        );
     }
 }
 
 void readInputFile(vector<AsssassinSoldier>& assassinSoldiers) {
-    ifstream massiveMurderFile("inputs/4.txt");
+    ifstream massiveMurderFile("inputs/1.txt");
 
     if (massiveMurderFile.is_open()) {
         while (true) {
@@ -254,8 +248,8 @@ int main() {
     ios::sync_with_stdio(false);
 
     vector<AsssassinSoldier> assassinSoldiers;
-    readInputFile(assassinSoldiers);
-    //readInput(assassinSoldiers);
+    //readInputFile(assassinSoldiers);
+    readInput(assassinSoldiers);
 
     for (AsssassinSoldier& assassinSoldier : assassinSoldiers) {
         float probabilityOfSuccess = assassinSoldier.calculateMaxProbabilityOfSuccess();
@@ -264,5 +258,6 @@ int main() {
 
     return 0;
 }  
+
 
 
