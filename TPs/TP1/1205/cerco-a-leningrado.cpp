@@ -68,13 +68,13 @@ class AsssassinSoldier {
             // Priority Queue Initialization
             priority_queue<StrategicPoint> pq;
             
+            this->strategicPoints[this->soldierStartPoint].knownMaxProbabilityOfSuccess = calculateProbabilityOfSuccess(this->strategicPoints[this->soldierStartPoint]);
+
             pq.push(this->strategicPoints[this->soldierStartPoint]);
 
             while (!pq.empty() && (pq.top().id != this->soldierEndPoint)) {
                 StrategicPoint& currentStrategicPoint = this->strategicPoints[pq.top().id];
                 pq.pop();
-
-                currentStrategicPoint.knownMaxProbabilityOfSuccess = calculateProbabilityOfSuccess(currentStrategicPoint);
 
                 if (this->numBullets <= 0) {
                     this->strategicPoints[this->soldierEndPoint].knownMaxProbabilityOfSuccess == 0.0;
@@ -101,7 +101,8 @@ class AsssassinSoldier {
                     }
                     float currentProbabilityOfSuccess = currentStrategicPoint.knownMaxProbabilityOfSuccess;
                     float updatedTotalProbabilityOfSuccess = currentProbabilityOfSuccess * calculateProbabilityOfSuccess(nextStrategicPoint);
-                    if (updatedTotalProbabilityOfSuccess > nextStrategicPoint.knownMaxProbabilityOfSuccess) {
+                    bool hasEnoughtBullets = this->numBullets >= nextStrategicPoint.numShooters;
+                    if (hasEnoughtBullets && (updatedTotalProbabilityOfSuccess > nextStrategicPoint.knownMaxProbabilityOfSuccess)) {
                         nextStrategicPoint.knownMaxProbabilityOfSuccess = updatedTotalProbabilityOfSuccess;
                         nextStrategicPoint.previousPointID = currentStrategicPoint.id;
                         pq.push(nextStrategicPoint);
@@ -199,7 +200,7 @@ void readInput(vector<AsssassinSoldier>& assassinSoldiers) {
 }
 
 void readInputFile(vector<AsssassinSoldier>& assassinSoldiers) {
-    ifstream massiveMurderFile("inputs/2.txt");
+    ifstream massiveMurderFile("inputs/4.txt");
 
     if (massiveMurderFile.is_open()) {
         while (true) {
@@ -253,8 +254,8 @@ int main() {
     ios::sync_with_stdio(false);
 
     vector<AsssassinSoldier> assassinSoldiers;
-    //readInputFile(assassinSoldiers);
     readInputFile(assassinSoldiers);
+    //readInput(assassinSoldiers);
 
     for (AsssassinSoldier& assassinSoldier : assassinSoldiers) {
         float probabilityOfSuccess = assassinSoldier.calculateMaxProbabilityOfSuccess();
