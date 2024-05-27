@@ -15,7 +15,7 @@ struct Language {
     string previousLanguage = "";
     bool visited = false;
     int knownSmallestSequenceLength = MAXINT;
-    vector<string> sequence;
+    char initialLetterLastKnownExpression = '\0';
 
     Language(){};
 
@@ -58,10 +58,10 @@ class MappingExpressionsDictionary {
             Language& previousLanguage = this->languages[mapExpression.srcLanguage];
             Language& nextLanguage = this->languages[mapExpression.destLanguage];
  
-            if (previousLanguage.sequence.empty()) {
+            if (previousLanguage.initialLetterLastKnownExpression == '\0') {
                 return false;
             }
-            else if (previousLanguage.sequence.back().front() == mapExpression.expression.front()) {
+            else if (previousLanguage.initialLetterLastKnownExpression == mapExpression.expression.front()) {
                 return true;
             }
             else {
@@ -72,10 +72,10 @@ class MappingExpressionsDictionary {
         void dijkstra(void) {
             // Priority Queue Initialization
             priority_queue<Language> pq;
-            languages[this->startLanguage].knownSmallestSequenceLength = 0;
-            pq.push(this->languages[this->startLanguage]);
+            languages[this->endLanguage].knownSmallestSequenceLength = 0;
+            pq.push(this->languages[this->endLanguage]);
 
-            while (!pq.empty() && (pq.top().name != this->endLanguage)) {
+            while (!pq.empty() && (pq.top().name != this->startLanguage)) {
                 Language& currentLanguage = this->languages[pq.top().name];
                 pq.pop();
 
@@ -87,19 +87,17 @@ class MappingExpressionsDictionary {
 
                 for (MappingExpresionEntry mapExpression : this->dictionary[currentLanguage.name]) {
                     Language& nextLanguage = this->languages[mapExpression.destLanguage];
-                    if (nextLanguage.visited || mapExpression.expression[0] > nextLanguage.knownSmallestSequenceLength) {
+                    if (nextLanguage.visited) {
                         continue;
                     }
 
                     float currentSequenceLength = currentLanguage.knownSmallestSequenceLength;
                     float updatedSequenceLength = currentSequenceLength + mapExpression.expression.length();
-                    areInitialLettersForAdjacentWordsTheSame(mapExpression);
                     if ((updatedSequenceLength < nextLanguage.knownSmallestSequenceLength) 
                             && (!areInitialLettersForAdjacentWordsTheSame(mapExpression))) {
                         nextLanguage.knownSmallestSequenceLength = updatedSequenceLength;
                         nextLanguage.previousLanguage = currentLanguage.name;
-                        nextLanguage.sequence = currentLanguage.sequence;
-                        nextLanguage.sequence.push_back(mapExpression.expression);
+                        nextLanguage.initialLetterLastKnownExpression = mapExpression.expression.front();
                         pq.push(nextLanguage);
                     }
                 }
@@ -134,7 +132,7 @@ class MappingExpressionsDictionary {
 
         int getSmallestSequenceLength() {
             dijkstra();
-            return this->languages[this->endLanguage].knownSmallestSequenceLength;
+            return this->languages[this->startLanguage].knownSmallestSequenceLength;
         }
 
 };
