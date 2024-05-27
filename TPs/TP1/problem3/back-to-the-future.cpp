@@ -12,24 +12,34 @@
 
 #define INF numeric_limits<float>::infinity()
 
+#define MAXINT numeric_limits<int>::max()
+
 using namespace std;
 
 struct FlightRoute {
     int originCityID;
     int destCityID;
     float ticketPrice;
-    bool confirmed = false;
+    int numberOfSeatsUsed = 0;
+    int totalNumberOfSeats = 0;
+    int numberOfSeatsAvailable = 0; // totalNumberOfSeats - numberOfSeatsUsed
+    int priceSignal = 0; // 1 for forward, 0 for backward, 
 
     FlightRoute(const int& originCityID, const int& destCityID, const float& ticketPrice) {
         this->originCityID = originCityID;
         this->destCityID = destCityID;
         this->ticketPrice = ticketPrice;
     }
+
+    bool hasSeatsAvailable(void) {
+        return numberOfSeatsAvailable > 0;
+    }
 };
 
 struct City{
     int id;
     float knownTotalPriceFromOrigin = INF;
+    int knownTotalFriendsThatTraveled = 0;
     bool visited = false;
     int previousCityID = -1;
 
@@ -75,6 +85,10 @@ class TripAdvisor {
             }
         }
 
+        void accumTotalPrice(int& additionalPrice) {
+            this->totalPricePaidByFriends += additionalPrice;
+        }
+
         FlightRoute getRouteFromTripsGraph(const int& originCityID, const int& destCityID){
             for (FlightRoute& flightRoute : this->tripGraph[originCityID]) {
                 if (flightRoute.destCityID == destCityID){
@@ -84,21 +98,25 @@ class TripAdvisor {
             return FlightRoute(-1, -1, -1);
         }
 
-        void confirmRouteBothWays(int& originCityID, int& destCityID) {
-            //cout << "Origin " << originCityID << " -> Dest " << destCityID << endl;
+        void bookSeatsInRoute(int& originCityID, int& destCityID, int& numSeats) {
             for (int i = 0; i < tripGraph[originCityID].size(); i++) {
-                //cout << "Analyzing edge: " << tripGraph[originCityID][i].originCityID << " -> " << tripGraph[originCityID][i].destCityID << endl;
                 if (tripGraph[originCityID][i].destCityID == destCityID) {
-                    tripGraph[originCityID][i].confirmed = true;
+                    tripGraph[originCityID][i].numberOfSeatsUsed = numSeats;
+                    tripGraph[originCityID][i].numberOfSeatsAvailable = tripGraph[originCityID][i].totalNumberOfSeats - numSeats;
+                    if(tripGraph[originCityID][i].priceSignal == 0)
+                        tripGraph[originCityID][i].priceSignal = 1;
+                    int flowPrice = (int) tripGraph[originCityID][i].ticketPrice * numSeats *tripGraph[originCityID][i].priceSignal;
+                    accumTotalPrice(flowPrice);
                     break;
                 }
             }
-            //cout << "The other way around" << endl;
-            //cout << "Origin " << destCityID << " -> Dest " << originCityID << endl;
-            for (int i = 0; i < tripGraph[destCityID].size(); i++) {
-                //cout << "Analyzing edge: " << tripGraph[destCityID][i].originCityID << " -> " << tripGraph[destCityID][i].destCityID << endl;
-                if (tripGraph[destCityID][i].destCityID == originCityID) {
-                    tripGraph[destCityID][i].confirmed = true;
+
+            for (int j = 0; j < tripGraph[destCityID].size(); j++) {
+                if (tripGraph[destCityID][j].destCityID == originCityID) {
+                    tripGraph[destCityID][j].numberOfSeatsUsed = tripGraph[destCityID][j].totalNumberOfSeats - numSeats;
+                    tripGraph[destCityID][j].numberOfSeatsAvailable = numSeats;
+                    if(tripGraph[destCityID][j].priceSignal == 0)
+                        tripGraph[destCityID][j].priceSignal = -1;
                     break;
                 }
             }
@@ -121,12 +139,18 @@ class TripAdvisor {
                 cities.emplace_back(city);
             }
 
+
             for (FlightRoute flightRoute : flightRoutes) {
+                flightRoute.totalNumberOfSeats = numSeatsPerFlight;
+                flightRoute.numberOfSeatsAvailable = numSeatsPerFlight;
                 tripGraph[flightRoute.originCityID].emplace_back(flightRoute);
-                int tempSwap = flightRoute.originCityID;
-                flightRoute.originCityID = flightRoute.destCityID;
-                flightRoute.destCityID = tempSwap;
-                tripGraph[flightRoute.originCityID].emplace_back(flightRoute);
+
+                FlightRoute flighRouteInversed(flightRoute);
+                flighRouteInversed.originCityID = flightRoute.destCityID;
+                flighRouteInversed.destCityID = flightRoute.originCityID;
+                flighRouteInversed.totalNumberOfSeats = numSeatsPerFlight;
+                flighRouteInversed.numberOfSeatsAvailable = numSeatsPerFlight;
+                tripGraph[flighRouteInversed.originCityID].emplace_back(flighRouteInversed);
             }
         }
 
@@ -148,7 +172,7 @@ class TripAdvisor {
                 currentCity.visited = true;
                 for (FlightRoute& flightRoute : tripGraph[currentCity.id]) {
                     // Used in case the flight was already used by the friends
-                    if (flightRoute.confirmed || cities[flightRoute.destCityID].visited) {
+                    if (!flightRoute.hasSeatsAvailable() || cities[flightRoute.destCityID].visited) {
                         continue;
                     }
                     float updatedTotalPriceFromCurrentCity = currentCity.knownTotalPriceFromOrigin + flightRoute.ticketPrice;
@@ -161,7 +185,31 @@ class TripAdvisor {
             }   
         }
 
+        int augmentFlow(const vector<int>& dijkstraMinPath){
+            int bottleneckFlow = MAXINT;
+            int friendsTraveling = 0;
+            for (int i = dijkstraMinPath.size() - 1;  i > 0; i--) {
+                int currentCityID = dijkstraMinPath[i];
+                int nextCityID = dijkstraMinPath[i-1];
+                FlightRoute currentFlightRoute = getRouteFromTripsGraph(currentCityID, nextCityID);
+                bottleneckFlow = min(bottleneckFlow, currentFlightRoute.numberOfSeatsAvailable);
+            }
+
+            for (int i = dijkstraMinPath.size() - 1;  i > 0; i--) {
+                int currentCityID = dijkstraMinPath[i];
+                int nextCityID = dijkstraMinPath[i-1];
+                friendsTraveling = min(bottleneckFlow, cities[currentCityID].knownTotalFriendsThatTraveled);
+                cities[currentCityID].knownTotalFriendsThatTraveled -= friendsTraveling;
+                cities[nextCityID].knownTotalFriendsThatTraveled += friendsTraveling;
+
+                bookSeatsInRoute(currentCityID, nextCityID, friendsTraveling);
+            }
+            return friendsTraveling;
+        }
+
         bool findCheapestFlightsRouteForAllFriends(void) {
+            cities[1].knownTotalFriendsThatTraveled = this->numFriends;
+
             while(totalFriendsThatTraveled < numFriends) {
                 Dijkstra(1);
                 vector<int> dijkstraMinPath; 
@@ -171,18 +219,9 @@ class TripAdvisor {
                     return false;
                 }
                 else {
-                    // Confirming paths
-
-                    for (int i = 1;  i < dijkstraMinPath.size(); i++) {
-                        int previousCityID = dijkstraMinPath[i - 1];
-                        int currentCityID = dijkstraMinPath[i];
-                        confirmRouteBothWays(previousCityID, currentCityID);
-                    }
-                    
-                    int numSeatsReserved = min(this->numSeatsPerFlight, this->numFriends - this->totalFriendsThatTraveled);
-                    this->totalFriendsThatTraveled += numSeatsReserved;
-                    float individualTicketPrice = cities[finalDestinyCityID].knownTotalPriceFromOrigin;
-                    this->totalPricePaidByFriends += (individualTicketPrice * numSeatsReserved);
+                    // Iterating in reverse order due to recovery path starting from sink node
+                    int numFriendsTraveling = augmentFlow(dijkstraMinPath);
+                    this->totalFriendsThatTraveled += numFriendsTraveling;
                 }
                 if (totalFriendsThatTraveled < numFriends)
                     resetCities();
@@ -195,23 +234,7 @@ class TripAdvisor {
             return this->totalPricePaidByFriends;
         }
 
-        
 };
-
-void readInputGetLines(vector<TripAdvisor>& trips) {
-    string tempInputStorage;
-
-    while (getline(cin, tempInputStorage))  {
-        if (tempInputStorage.empty()) { 
-            break; 
-        } 
-
-        cout << tempInputStorage << endl;
-        string dummy;
-        getline(cin, dummy);
-        
-    }
-}
 
 void readInput(vector<TripAdvisor>& trips) {
     int numCities, numFlightRoutes, numFriends, numSeats;
@@ -281,7 +304,7 @@ int main() {
     // Variables extracted from input data
     vector<TripAdvisor> trips;
 
-    readInputFile(trips);
+    readInput(trips);
 
     for (int i = 0; i < trips.size(); i++) {
         bool validTrip = trips[i].findCheapestFlightsRouteForAllFriends();
