@@ -67,9 +67,6 @@ class DisjointSet {
         DisjointSet(){};
 
         DisjointSet(const vector<Wall>& walls, const vector<Sensor>& sensors) {
-            int totalSize = walls.size() + sensors.size();
-            rank.reserve(totalSize);
-            disjointSetParents.reserve(totalSize);
             for(const Wall& wall: walls) {
                 makeSet(wall.id);
             }
@@ -137,14 +134,14 @@ class ArtRobbery {
                     disjointSet.unionSet(sensor.id, leftWall.id);
                 }
                 // Checks intersection with right wall 
-                else if (sensor.x + sensor.range >= rightWall.x) {
+                if (sensor.x + sensor.range >= rightWall.x) {
                     disjointSet.unionSet(sensor.id, rightWall.id);
                 }
                 // Checks intersection with top wall
-                else if (sensor.y + sensor.range >= frontWall.y) {
+                if (sensor.y + sensor.range >= frontWall.y) {
                     disjointSet.unionSet(sensor.id, frontWall.id);
                 }
-                else if (sensor.y - sensor.range <= backWall.y) {
+                if (sensor.y - sensor.range <= backWall.y) {
                     disjointSet.unionSet(sensor.id, backWall.id);
                 }
             }
