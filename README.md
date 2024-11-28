@@ -13,6 +13,7 @@ Repositório contendo o código fonte para a realização dos TPs
 | 4    | 1552  |  Resgate em Queda Livre             | -         | -      | 6     | 100  |
 | 5    | 2646  |  Secret Chamber at Mount Rushmore   | -         | -      | 4     | 100  |
 | 6    | 2962  |  Arte Valiosa                       | -         | -      | 9     | 100  |
+| 7    | 3356  |  Reprodução Controlada              | -         | -      | 3     | 100  |
 
 
 
