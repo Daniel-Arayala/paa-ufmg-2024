@@ -34,80 +34,127 @@ struct City
     unsigned short int connectedComponentID;
 };
 
+class DisjointSet
+{
+private:
+    unordered_map<int, int> disjointSetParents;
+    unordered_map<int, int> rank;
+    bool allElementsInSameSet = false;
+
+    void makeSet(int id)
+    {
+        disjointSetParents[id] = id;
+        rank[id] = 1; // Number of nodes in the set
+    }
+
+    int findSetRecursive(const int &id)
+    {
+        if (id != disjointSetParents[id])
+        {
+            disjointSetParents[id] = findSetRecursive(disjointSetParents[id]); // Path compression
+        }
+        return disjointSetParents[id];
+    }
+
+public:
+    DisjointSet() {};
+
+    DisjointSet(const vector<City> cities)
+    {
+        for (int cityIdx = 0; cityIdx < cities.size(); cityIdx++)
+        {
+            makeSet(cityIdx);
+        }
+    }
+
+    bool areAllElementsInSameSet(void) const
+    {
+        return allElementsInSameSet;
+    }
+
+    bool unionSet(const int &id1, const int &id2)
+    {
+        if (id1 == id2)
+            return false;
+
+        int representative1 = findSetRecursive(id1);
+        int representative2 = findSetRecursive(id2);
+
+        if (representative1 == representative2)
+        {
+            return false;
+        }
+
+        else if (rank[representative1] <= rank[representative2])
+        {
+            disjointSetParents[representative1] = representative2;
+            rank[representative2] += rank[representative1];
+            if (rank[representative2] == disjointSetParents.size())
+                allElementsInSameSet = true;
+        }
+        else
+        {
+            disjointSetParents[representative2] = representative1;
+            rank[representative1] += rank[representative2];
+            if (rank[representative1] == disjointSetParents.size())
+                allElementsInSameSet = true;
+        }
+        return true;
+    }
+
+    int findSet(const int &id)
+    {
+        return findSetRecursive(id);
+    }
+};
+
 class LivrolandiaMap
 {
 private:
     Strategy strategy;
     vector<City> cities;
-    vector<vector<Road>> cityRoads;
-    float libraryConstructionCost, roadConstructionCost;
+    DisjointSet connectedCities;
+
+    long int libraryConstructionCost, roadConstructionCost;
     vector<vector<unsigned int>> connectedComponents;
-
-    void dfs(unsigned int &rootCityId, unsigned short int &connectedComponentId)
-    {
-        this->cities[rootCityId].cor = CINZA;
-
-        for (Road road : cityRoads[rootCityId])
-        {
-            if (this->cities[road.destCity].cor == BRANCO)
-                dfs(road.destCity, connectedComponentId);
-        }
-
-        this->cities[rootCityId].cor = PRETO;
-        this->cities[rootCityId].connectedComponentID = connectedComponentId;
-        this->connectedComponents[connectedComponentId].push_back(rootCityId);
-    }
-
-    void findConnectedComponents(void)
-    {
-
-        unsigned short int connectedComponentId = 0;
-
-        for (unsigned int cityIdx = 0; cityIdx < this->cities.size(); cityIdx++)
-        {
-            if (this->cities[cityIdx].cor == BRANCO)
-            {
-                this->connectedComponents.push_back(vector<unsigned int>());
-                this->dfs(cityIdx, connectedComponentId);
-                connectedComponentId++;
-            }
-        }
-    }
 
 public:
     LivrolandiaMap() {};
     LivrolandiaMap(
         Strategy &strategy,
         vector<City> &cities,
-        vector<vector<Road>> &roads,
-        float &libraryConstructionCost,
-        float &roadConstructionCost) : strategy(strategy),
-                                       cities(cities),
-                                       cityRoads(roads),
-                                       libraryConstructionCost(libraryConstructionCost),
-                                       roadConstructionCost(roadConstructionCost) {};
+        DisjointSet &connectedCities,
+        long int &libraryConstructionCost,
+        long int &roadConstructionCost) : strategy(strategy),
+                                          cities(cities),
+                                          connectedCities(connectedCities),
+                                          libraryConstructionCost(libraryConstructionCost),
+                                          roadConstructionCost(roadConstructionCost) {};
 
-    float calculateMinReconstructioCost(void)
+    long int calculateMinReconstructionCost(void)
     {
-        this->findConnectedComponents();
 
-        float totalRecontructionCosts = 0.0;
+        unordered_map<int, long int> totalCostPerConnectedComponent;
 
-        if (this->strategy == ONE_LIBRARY_PER_CITY)
+        long int totalRecontructionCosts = 0;
+
+        for (int cityIdx = 0; cityIdx < this->cities.size(); cityIdx++)
         {
-            for (unsigned short int connCompIdx = 0; connCompIdx < this->connectedComponents.size(); connCompIdx++)
-            {
-                totalRecontructionCosts += this->connectedComponents[connCompIdx].size() * this->libraryConstructionCost;
-            }
-            
+            int connectedComponentID = this->connectedCities.findSet(cityIdx);
+
+            if (this->strategy == ONE_LIBRARY_PER_CITY)
+                totalCostPerConnectedComponent[connectedComponentID] += this->libraryConstructionCost;
+            else
+                totalCostPerConnectedComponent[connectedComponentID] += this->roadConstructionCost;
         }
-        else
+
+        for (auto const &connectedComponent : totalCostPerConnectedComponent)
         {
-            for (unsigned short int connCompIdx = 0; connCompIdx < this->connectedComponents.size(); connCompIdx++)
-            {
-                totalRecontructionCosts += this->libraryConstructionCost + (this->connectedComponents[connCompIdx].size() - 1) * this->roadConstructionCost;
-            }
+            totalRecontructionCosts += connectedComponent.second;
+            if (this->strategy == ONE_LIBRARY_CONNECTED_BY_ROADS) // adjustement
+                totalRecontructionCosts = totalRecontructionCosts + this->libraryConstructionCost - this->roadConstructionCost;
         }
+
         return totalRecontructionCosts;
     }
 };
@@ -116,7 +163,7 @@ class ReconstructionPlan
 {
 private:
     vector<LivrolandiaMap> livrolandiaMaps;
-    vector<float> minReconstructionCosts;
+    vector<long int> minReconstructionCosts;
 
 public:
     void addMap(LivrolandiaMap &map)
@@ -127,10 +174,10 @@ public:
     void calculateMinReconstructionCosts(void)
     {
         for (LivrolandiaMap &map : this->livrolandiaMaps)
-            this->minReconstructionCosts.push_back(map.calculateMinReconstructioCost());
+            this->minReconstructionCosts.push_back(map.calculateMinReconstructionCost());
     }
 
-    vector<float> getMinReconstructionCosts(void)
+    vector<long int> getMinReconstructionCosts(void)
     {
         return this->minReconstructionCosts;
     }
@@ -147,23 +194,26 @@ void readInput(ReconstructionPlan &reconstructionPlan)
     {
         unsigned int numCities, numRoads;
         vector<City> cities;
-        vector<vector<Road>> roads;
-        float libraryConstructionCost, roadConstructionCost;
+
+        long int libraryConstructionCost, roadConstructionCost;
         Strategy strategy;
 
         cin >> numCities >> numRoads >> libraryConstructionCost >> roadConstructionCost;
 
         // Strategy
-        if (libraryConstructionCost <= (roadConstructionCost / 2))
+        if (libraryConstructionCost < roadConstructionCost)
             strategy = ONE_LIBRARY_PER_CITY;
         else
             strategy = ONE_LIBRARY_CONNECTED_BY_ROADS;
 
+        // Initialize cities
         for (int cityCounter = 0; cityCounter < numCities; cityCounter++)
         {
             cities.push_back(City());
-            roads.push_back(vector<Road>());
         }
+
+        // Initialize roads
+        DisjointSet connectedCities(cities);
 
         for (int roadCounter = 0; roadCounter < numRoads; roadCounter++)
         {
@@ -172,19 +222,18 @@ void readInput(ReconstructionPlan &reconstructionPlan)
             // Adjusting the indexes
             srcCity -= 1;
             destCity -= 1;
-            // Undirected graph
-            roads[srcCity].push_back(Road(srcCity, destCity));
-            roads[destCity].push_back(Road(destCity, srcCity));
+
+            connectedCities.unionSet(srcCity, destCity);
         }
 
-        LivrolandiaMap livrolandiaMap(strategy, cities, roads, libraryConstructionCost, roadConstructionCost);
+        LivrolandiaMap livrolandiaMap(strategy, cities, connectedCities, libraryConstructionCost, roadConstructionCost);
         reconstructionPlan.addMap(livrolandiaMap);
     }
 }
 
 void writeOutput(ReconstructionPlan &reconstructionPlan)
 {
-    for (float minReconstructionCost : reconstructionPlan.getMinReconstructionCosts())
+    for (int minReconstructionCost : reconstructionPlan.getMinReconstructionCosts())
     {
         cout << minReconstructionCost << endl;
     }
@@ -194,10 +243,12 @@ int main()
 {
     ios::sync_with_stdio(false);
     cin.tie(nullptr);
-    
+
     ReconstructionPlan reconstructionPlan;
 
     readInput(reconstructionPlan);
     reconstructionPlan.calculateMinReconstructionCosts();
     writeOutput(reconstructionPlan);
+
+    return 0;
 }
