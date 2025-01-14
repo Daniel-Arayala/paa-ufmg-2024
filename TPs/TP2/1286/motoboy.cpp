@@ -22,6 +22,7 @@ class PizzaDelivery
 private:
     int numOrders = 0;
     int maxPizzas = 0;
+    int orderIndex = 0;
     vector<Order> orders;
     vector<vector<int>> memoizedDeliveryTimes;
 
@@ -35,7 +36,7 @@ public:
 
     void addOrder(const Order &order)
     {
-        this->orders.push_back(order);
+        this->orders[orderIndex++] = order;
     }
 
     void calculateMaxDelegatedDeliveryTime(void)
