@@ -27,7 +27,7 @@ public:
         int curr_i = 1; // Current index
         for (int digit_i = 1; digit_i <= number.size(); digit_i++)
         {
-            for (int select_i = 1; select_i <= maxSelect; select_i++)
+            for (int select_i = 1; select_i <= min(digit_i, maxSelect); select_i++)
             {
                 memoizedNumber[curr_i][select_i] = max(
                     memoizedNumber[prev_i][select_i],
@@ -35,9 +35,7 @@ public:
 
                 maxNumber = max(maxNumber, memoizedNumber[curr_i][select_i]);
             }
-            int temp = prev_i;
-            prev_i = curr_i;
-            curr_i = temp;
+            swap(prev_i, curr_i);
         }
     }
 
