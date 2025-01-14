@@ -10,7 +10,6 @@ private:
     string number;
     int maxErase = 0;
     int maxSelect = 0;
-    vector<vector<string>> memoizedNumber;
     int maxNumber = 0;
 
     int parseToInt(const string &strNumber) {
@@ -24,11 +23,13 @@ public:
         : number(number), maxErase(maxErase)
     {
         this->maxSelect = number.size() - maxErase;
-        memoizedNumber.resize(number.size() + 1, vector<string>(maxSelect + 1, ""));
     }
 
     void findMaxBoardNumber(void)
     {
+        vector<vector<string>> memoizedNumber;
+        memoizedNumber.resize(number.size() + 1, vector<string>(maxSelect + 1, ""));
+        
         for (int digit_i = 1; digit_i <= number.size(); digit_i++)
         {
             for (int select_i = 1; select_i <= maxSelect; select_i++)
