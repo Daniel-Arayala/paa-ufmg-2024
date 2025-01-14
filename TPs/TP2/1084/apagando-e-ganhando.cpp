@@ -12,32 +12,45 @@ private:
     int maxErase;
     int maxSelect;
     int maxNumber;
+    vector<char> result;
 
 public:
     BoardNumber(const string &number, const int &maxErase)
         : number(number), maxErase(maxErase)
     {
         maxSelect = number.size() - maxErase;
+        result.resize(maxSelect, '0');
     }
 
-    void findMaxBoardNumber()
+    void findMaxBoardNumber(void)
     {
-        vector<int> memoizedNumber(maxSelect + 1, 0);
-
-        for (char ch : number)
+        for (int i = 0; i < number.size(); i++)
         {
-            int currentDigit = ch - '0';
-            int limit = min(maxSelect, static_cast<int>(number.size() - (&ch - &number[0])));
-            for (int select_i = maxSelect; select_i >= 1; select_i--)
+            char currentDigit = number[i];
+
+            bool resultUpdated = false;
+
+            int relativeToMaxSelectPosition = (number.size() - i) - maxSelect;
+
+            int start_index = -min(relativeToMaxSelectPosition, 0);
+
+            for (int r_i = start_index; r_i < maxSelect; r_i++)
             {
-                memoizedNumber[select_i] = max(memoizedNumber[select_i], memoizedNumber[select_i - 1] * 10 + currentDigit);
+
+                if (resultUpdated)
+                {
+                    result[r_i] = '0';
+                }
+                else if ((currentDigit > result[r_i]))
+                {
+                    result[r_i] = currentDigit;
+                    resultUpdated = true;
+                }
             }
         }
-
-        maxNumber = memoizedNumber[maxSelect];
     }
 
-    int getMaxNumber() const { return maxNumber; }
+    vector<char> getResult() const { return result; }
 };
 
 void readInput(vector<BoardNumber> &boardNumberInstances)
@@ -60,7 +73,13 @@ void getMaxBoardNumbers(vector<BoardNumber> &boardNumberInstances)
 void writeOutput(vector<BoardNumber> &boardNumberInstances)
 {
     for (const auto &boardNumber : boardNumberInstances)
-        cout << boardNumber.getMaxNumber() << endl;
+    {
+        for (const auto &digit : boardNumber.getResult())
+        {
+            cout << digit;
+        }
+        cout << endl;
+    }
 }
 
 int main()
