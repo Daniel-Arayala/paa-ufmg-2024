@@ -16,33 +16,33 @@ private:
     int numBlocksUsed = 0;
 
 public:
-    IceStatue(
-        const int &blockTypes,
-        const int &desiredLength,
-        const vector<int> &blocksLengths)
-        : blockTypes(blockTypes), desiredLength(desiredLength), blocksLengths(blocksLengths)
-    {
-        sort(this->blocksLengths.begin(), this->blocksLengths.end(), greater<int>());
-    };
+    IceStatue(const int &blockTypes, const int &desiredLength, const vector<int> &blocksLengths)
+        : blockTypes(blockTypes), desiredLength(desiredLength), blocksLengths(blocksLengths){}
 
-    void findMinBlocks(void)
-    {
-        int currentBlockLength = 0;
-        int blockIndex = 0;
+    void findMinBlocks()
+    {   
+        vector<int> memoizedNumBlocks;
+        memoizedNumBlocks = vector<int>(desiredLength + 1, INF);
+        memoizedNumBlocks[0] = 0;
 
-        while ((currentBlockLength < this->desiredLength) && (blockIndex < this->blocksLengths.size()))
+        for (int maxLength_i = 1; maxLength_i <= desiredLength; maxLength_i++)
         {
-            if (this->blocksLengths[blockIndex] + currentBlockLength <= desiredLength)
+            for (int blockType_i = 0; blockType_i < blockTypes; blockType_i++)
             {
-                currentBlockLength += this->blocksLengths[blockIndex];
-                this->numBlocksUsed++;
+                if (maxLength_i >= this->blocksLengths[blockType_i])
+                {
+                    memoizedNumBlocks[maxLength_i] = min(
+                        memoizedNumBlocks[maxLength_i], 
+                        memoizedNumBlocks[maxLength_i - blocksLengths[blockType_i]] + 1
+                    );
+                }
             }
-            
-            blockIndex++;
         }
+
+        numBlocksUsed = memoizedNumBlocks[desiredLength];
     }
 
-    int getNumBlocksUsed(void) const { return this->numBlocksUsed; }
+    int getNumBlocksUsed() const { return numBlocksUsed; }
 };
 
 void readInput(vector<IceStatue> &iceStatues)
@@ -53,12 +53,10 @@ void readInput(vector<IceStatue> &iceStatues)
     {
         int blockTypes, desiredLength;
         cin >> blockTypes >> desiredLength;
-        vector<int> blocksLengths;
-        for (int blockLength_i = 0; blockLength_i < blockTypes; blockLength_i++)
+        vector<int> blocksLengths(blockTypes);
+        for (int &blockLength : blocksLengths)
         {
-            int blockLength;
             cin >> blockLength;
-            blocksLengths.push_back(blockLength);
         }
         IceStatue iceStatue(blockTypes, desiredLength, blocksLengths);
         iceStatues.push_back(iceStatue);
@@ -67,14 +65,14 @@ void readInput(vector<IceStatue> &iceStatues)
 
 void minimizeNumberOfBlocks(vector<IceStatue> &iceStatues)
 {
-    for (int i = 0; i < iceStatues.size(); ++i)
-        iceStatues[i].findMinBlocks();
+    for (auto &iceStatue : iceStatues)
+        iceStatue.findMinBlocks();
 }
 
-void writeOutput(vector<IceStatue> &iceStatues)
+void writeOutput(const vector<IceStatue> &iceStatues)
 {
-    for (int i = 0; i < iceStatues.size(); ++i)
-        cout << iceStatues[i].getNumBlocksUsed() << endl;
+    for (const auto &iceStatue : iceStatues)
+        cout << iceStatue.getNumBlocksUsed() << endl;
 }
 
 int main()
