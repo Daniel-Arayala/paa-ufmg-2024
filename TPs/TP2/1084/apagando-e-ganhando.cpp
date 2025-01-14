@@ -1,6 +1,7 @@
 #include <iostream>
 #include <vector>
 #include <string>
+#include <algorithm>
 
 using namespace std;
 
@@ -8,55 +9,45 @@ class BoardNumber
 {
 private:
     string number;
-    int maxErase = 0;
-    int maxSelect = 0;
-    int maxNumber = 0;
+    int maxErase;
+    int maxSelect;
+    int maxNumber;
 
 public:
     BoardNumber(const string &number, const int &maxErase)
         : number(number), maxErase(maxErase)
     {
-        this->maxSelect = number.size() - maxErase;
+        maxSelect = number.size() - maxErase;
     }
 
-    void findMaxBoardNumber(void)
+    void findMaxBoardNumber()
     {
-        vector<int> prevMemoization(maxSelect + 1, 0);
-        vector<int> currMemoization(maxSelect + 1, 0);
+        vector<int> memoizedNumber(maxSelect + 1, 0);
 
-        for (int digit_i = 1; digit_i <= number.size(); digit_i++)
+        for (char ch : number)
         {
-            int currentDigit = number[digit_i - 1] - '0';
-            int selectionLimit = min(digit_i, maxSelect);
-
-            for (int select_i = 1; select_i <= selectionLimit; select_i++)
+            int currentDigit = ch - '0';
+            int limit = min(maxSelect, static_cast<int>(number.size() - (&ch - &number[0])));
+            for (int select_i = maxSelect; select_i >= 1; select_i--)
             {
-                currMemoization[select_i] = max(
-                    prevMemoization[select_i],
-                    prevMemoization[select_i - 1] * 10 + currentDigit);
+                memoizedNumber[select_i] = max(memoizedNumber[select_i], memoizedNumber[select_i - 1] * 10 + currentDigit);
             }
-            prevMemoization.swap(currMemoization);
         }
 
-        maxNumber = prevMemoization[maxSelect];
+        maxNumber = memoizedNumber[maxSelect];
     }
 
-    int getMaxNumber(void) const { return maxNumber; }
+    int getMaxNumber() const { return maxNumber; }
 };
 
 void readInput(vector<BoardNumber> &boardNumberInstances)
 {
     int numDigits, maxErase;
-    while (true)
+    while (cin >> numDigits >> maxErase && (numDigits != 0 || maxErase != 0))
     {
-        cin >> numDigits >> maxErase;
-        if (numDigits == 0 && maxErase == 0)
-            break;
-
         string number;
         cin >> number;
-        BoardNumber boardNumber(number, maxErase);
-        boardNumberInstances.push_back(boardNumber);
+        boardNumberInstances.emplace_back(number, maxErase);
     }
 }
 
@@ -68,12 +59,15 @@ void getMaxBoardNumbers(vector<BoardNumber> &boardNumberInstances)
 
 void writeOutput(vector<BoardNumber> &boardNumberInstances)
 {
-    for (auto &boardNumber : boardNumberInstances)
+    for (const auto &boardNumber : boardNumberInstances)
         cout << boardNumber.getMaxNumber() << endl;
 }
 
 int main()
 {
+    ios::sync_with_stdio(false);
+    cin.tie(nullptr);
+
     vector<BoardNumber> boardNumberInstances;
 
     readInput(boardNumberInstances);
