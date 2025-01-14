@@ -11,7 +11,6 @@ private:
     string number;
     int maxErase;
     int maxSelect;
-    int maxNumber;
     vector<char> result;
 
 public:
@@ -19,33 +18,26 @@ public:
         : number(number), maxErase(maxErase)
     {
         maxSelect = number.size() - maxErase;
-        result.resize(maxSelect, '0');
+        result.reserve(maxSelect);
     }
 
     void findMaxBoardNumber(void)
     {
-        for (int i = 0; i < number.size(); i++)
+        int eraseCount = 0;
+        for (char currentDigit : number)
         {
-            char currentDigit = number[i];
-
-            bool resultUpdated = false;
-
-            int relativeToMaxSelectPosition = (number.size() - i) - maxSelect;
-
-            int start_index = -min(relativeToMaxSelectPosition, 0);
-
-            for (int r_i = start_index; r_i < maxSelect; r_i++)
+            while (!result.empty() && result.back() < currentDigit && eraseCount < maxErase)
             {
-
-                if (resultUpdated)
-                {
-                    result[r_i] = '0';
-                }
-                else if ((currentDigit > result[r_i]))
-                {
-                    result[r_i] = currentDigit;
-                    resultUpdated = true;
-                }
+                result.pop_back();
+                eraseCount++;
+            }
+            if (result.size() < maxSelect)
+            {
+                result.push_back(currentDigit);
+            }
+            else
+            {
+                eraseCount++;
             }
         }
     }
