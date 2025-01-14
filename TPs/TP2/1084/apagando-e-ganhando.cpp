@@ -21,22 +21,24 @@ public:
 
     void findMaxBoardNumber(void)
     {
-        vector<vector<int>> memoizedNumber;
-        memoizedNumber.resize(2, vector<int>(maxSelect + 1, 0));
-        int prev_i = 0; // Previous index
-        int curr_i = 1; // Current index
+        vector<int> prevMemoization(maxSelect + 1, 0);
+        vector<int> currMemoization(maxSelect + 1, 0);
+
         for (int digit_i = 1; digit_i <= number.size(); digit_i++)
         {
-            for (int select_i = 1; select_i <= min(digit_i, maxSelect); select_i++)
-            {
-                memoizedNumber[curr_i][select_i] = max(
-                    memoizedNumber[prev_i][select_i],
-                    memoizedNumber[prev_i][select_i - 1] * 10 + (number[digit_i - 1] - '0'));
+            int currentDigit = number[digit_i - 1] - '0';
+            int selectionLimit = min(digit_i, maxSelect);
 
-                maxNumber = max(maxNumber, memoizedNumber[curr_i][select_i]);
+            for (int select_i = 1; select_i <= selectionLimit; select_i++)
+            {
+                currMemoization[select_i] = max(
+                    prevMemoization[select_i],
+                    prevMemoization[select_i - 1] * 10 + currentDigit);
             }
-            swap(prev_i, curr_i);
+            prevMemoization.swap(currMemoization);
         }
+
+        maxNumber = prevMemoization[maxSelect];
     }
 
     int getMaxNumber(void) const { return maxNumber; }
