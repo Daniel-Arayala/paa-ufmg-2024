@@ -12,12 +12,6 @@ private:
     int maxSelect = 0;
     int maxNumber = 0;
 
-    int parseToInt(const string &strNumber) {
-        if (strNumber.empty()) 
-            return 0;
-        return stoi(strNumber); 
-    }
-
 public:
     BoardNumber(const string &number, const int &maxErase)
         : number(number), maxErase(maxErase)
@@ -27,20 +21,23 @@ public:
 
     void findMaxBoardNumber(void)
     {
-        vector<vector<string>> memoizedNumber;
-        memoizedNumber.resize(number.size() + 1, vector<string>(maxSelect + 1, ""));
-        
+        vector<vector<int>> memoizedNumber;
+        memoizedNumber.resize(2, vector<int>(maxSelect + 1, 0));
+        int prev_i = 0; // Previous index
+        int curr_i = 1; // Current index
         for (int digit_i = 1; digit_i <= number.size(); digit_i++)
         {
             for (int select_i = 1; select_i <= maxSelect; select_i++)
             {
+                memoizedNumber[curr_i][select_i] = max(
+                    memoizedNumber[prev_i][select_i],
+                    memoizedNumber[prev_i][select_i - 1] * 10 + (number[digit_i - 1] - '0'));
 
-                memoizedNumber[digit_i][select_i] = to_string(max(
-                    parseToInt(memoizedNumber[digit_i - 1][select_i]),
-                    parseToInt(memoizedNumber[digit_i - 1][select_i - 1] + number[digit_i-1])));
-
-                maxNumber = max(maxNumber, parseToInt(memoizedNumber[digit_i][select_i]));
+                maxNumber = max(maxNumber, memoizedNumber[curr_i][select_i]);
             }
+            int temp = prev_i;
+            prev_i = curr_i;
+            curr_i = temp;
         }
     }
 
